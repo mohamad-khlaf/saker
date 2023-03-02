@@ -1,0 +1,1747 @@
+var betaFeatures = false;
+var cUID = "3274";
+var cPlan = "VIP";
+var cServerURL = "https://cfps1.boaa.it/";
+var cPageType = "Sales";
+var cFunnelId = "10170063";
+var cFunnelName = "Content Creator  ";
+var cStepId = "60116157";
+var cStepName = "Sales Page";
+var cPageId = "44501636";
+var cPageName = "Sales Page";
+var bAdmin = false;
+var bPreview = false;
+var cClientIP = "37.76.234.6";var kScript_5 = true,
+ps5_kUserScript = "7452",
+ps5_nPixelID = "1498963850239384",
+ps5_am_email = "email",
+ps5_am_firstname = "first_name",
+ps5_am_lastname = "last_name",
+ps5_am_phone = "phone",
+ps5_am_city = "city",
+ps5_am_state = "state",
+ps5_am_zip = "zip",
+ps5_am_country = "shipping_country";var kScript_33 = true,
+ps33_kUserScript = "7454",
+ps33_nCurrency = "USD",
+ps33_nSubscriptionFactor = "1",
+ps33_nPaymentPlanFactor = "1",
+ps33_nProductID_1 = "",
+ps33_nProductName_1 = "",
+ps33_nProductType_1 = "",
+ps33_nProductPrice_1 = "",
+ps33_nProductCurrency_1 = "",
+ps33_nLTVFactor_1 = "",
+ps33_nProducts = "1";var kScript_72 = true,
+ps72_kUserScript = "7456",
+ps72_nPixelID = "1498963850239384",
+ps72_nTestEventCode = "TEST12283",
+ps72_bLogAsTestEvent = "Y",
+ps72_bValueBasedTracking = "Y",
+ps72_cCurrency = "USD";var kScript_27 = true,
+ps27_kUserScript = "7486",
+ps27_bTrackAll = "N";var kScript_56 = true,
+ps56_kUserScript = "7722",
+ps56_bPreventInteraction = "Y",
+ps56_cTextClick2Play = "اضغط",
+ps56_cTextClick2Play2 = "لتسمع الصوت",
+ps56_cIconColor = "#ffffff",
+ps56_cIconBGColor = "#bd1b1e",
+ps56_cTextColor = "#ffffff",
+ps56_cPlayButton = "fab fa-youtube",
+ps56_cPlayButtonClr = "#fb1f40";
+console.log('%cCF Power Scripts', 'color:#bd1b1e;font-size:40px;font-weight:bold;font-family:Aria;');console.log('%chttps://www.cfpowerscripts.com', 'color:#000;font-size:16px;font-weight:bold;font-family:Aria;');console.log('%cAdding Power Script: Facebook Pixel', 'color:green;');console.log('%cSkipping Power Script (Page Type Restriction): Facebook Conversion Tracking', 'color:orange;');console.log('%cSkipping Power Script (Page Type Restriction): Conversion Tracking Addon', 'color:orange;');console.log('%cAdding Power Script: CF Vimeo Pro', 'color:green;');console.log('%cAdding Power Script: Facebook Conversion API', 'color:green;');
+// load Facebook script if needed
+if (typeof fbq !== "undefined" && fbq.version > "2.9") {
+  // Facebook Pixel already ready
+} else {
+  !(function (f, b, e, v, n, t, s) {
+    if (f.fbq) return;
+    n = f.fbq = function () {
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    };
+    if (!f._fbq) f._fbq = n;
+    n.push = n;
+    n.loaded = !0;
+    n.version = "2.0";
+    n.queue = [];
+    t = b.createElement(e);
+    t.async = !0;
+    t.src = v;
+    s = b.getElementsByTagName(e)[0];
+    s.parentNode.insertBefore(t, s);
+  })(
+    window,
+    document,
+    "script",
+    "https://connect.facebook.net/en_US/fbevents.js"
+  );
+}
+
+class CFPowerScripts {
+  constructor(isAdmin, funnelId, stepId, pageId) {
+    this.isAdmin = isAdmin; // set to 'true' (default: isAdmin) to enable debugging output for all users Independent of IP
+    this.ready = false;
+    this.fbqReady = false;
+    this.initialised = false;
+
+    // data based on script settings
+    this.conversionsAPI = typeof kScript_72 != "undefined" && kScript_72;
+    this.pixelArr = ps5_nPixelID.split(",");
+
+    // requests to server
+    this.baseUrl = cServerURL;
+
+    // funnel details
+    this.pageDetails = {};
+    this.pageDetails.funnelId = funnelId;
+    this.pageDetails.stepId = stepId;
+    this.pageDetails.pageId = pageId;
+
+    // prepare event queue obj
+    this.queueActive = false;
+    this.eventQueues = [];
+    this.eventQueues["CFPS"] = [];
+    this.eventQueues["Facebook"] = [];
+
+    // set storage Method that should be used for all data that's stored in the browser of the user
+    this.storageReady = false;
+    this.storageMethod = this.setStorageMethod();
+    this.log('Storage method set to "' + this.storageMethod + '"', "debug");
+
+    // get data from storage or create new empty object
+    this.pageViewData =
+      this.getItem("pageViewData") != null ? this.getItem("pageViewData") : {};
+    this.uniqueIdObj =
+      this.getItem("uniqueIdObj") != null ? this.getItem("uniqueIdObj") : {};
+
+    // unset ID for current page
+    if (typeof this.uniqueIdObj[this.pageDetails.pageId] != "undefined") {
+      delete this.uniqueIdObj[this.pageDetails.pageId];
+    }
+
+    this.usedEventIdsArr =
+      this.getItem("usedEventIdsArr") != null
+        ? this.getItem("usedEventIdsArr")
+        : [];
+
+    // fix bug with old version of CFPS
+    if (typeof this.pageViewData == "boolean") {
+      localStorage.removeItem("cfps_pageViewData");
+      this.pageViewData =
+        this.getItem("pageViewData") != null
+          ? this.getItem("pageViewData")
+          : {};
+    }
+
+    this.pageViewData.uniqueId =
+      this.pageDetails.funnelId +
+      "-" +
+      this.pageDetails.stepId +
+      "-" +
+      this.pageDetails.pageId +
+      "-" +
+      this.getUniqueHash(Date.now() + "-" + this.getRandomString(32)); // generate new unique ID for this pageload
+    this.pageViewData.visitorId =
+      typeof this.pageViewData.visitorId != "undefined"
+        ? this.pageViewData.visitorId
+        : null;
+    this.pageViewData.uniqueIdChanged = false; // can only be true after trackPageView()
+    this.pageViewData.email =
+      typeof this.pageViewData.email != "undefined"
+        ? this.pageViewData.email
+        : null;
+    if (
+      this.getCFUserData(this.pageViewData.email) != null &&
+      !/^\S+@\S+\.\S+$/.test(this.getCFUserData(this.pageViewData.email))
+    ) {
+      this.pageViewData.email = null;
+    }
+
+    this.pageViewData.pageViewId = null;
+
+    // check if email changed
+    this.pageViewData.email =
+      this.getCFUserData("email") != null &&
+      this.getCFUserData("email") != this.pageViewData.email
+        ? this.getCFUserData("email")
+        : this.pageViewData.email;
+
+    // track initial page view to get data
+    if (this.conversionsAPI) {
+      this.trackPageView();
+    }
+
+    // advanced matching
+    this.advancedMatchingObj = {};
+    this.setFacebookAdvancedMatchingParameters();
+    this.advancedMatching =
+      this.advancedMatchingObj.constructor === Object &&
+      Object.keys(this.advancedMatchingObj).length > 0;
+  }
+
+  // method to log events on different levels
+  log(message, type = "notice", data = "") {
+    switch (type) {
+      case "notice":
+        if (data !== "") {
+          console.log("CF Power Scripts: " + message, data);
+        } else {
+          console.log("CF Power Scripts: " + message);
+        }
+        break;
+
+      case "debug":
+        if (this.isAdmin) {
+          if (data !== "") {
+            console.log(
+              "%cCF Power Scripts: " + message,
+              "color:orange;font-weight:bold;",
+              data
+            );
+          } else {
+            console.log(
+              "%cCF Power Scripts: " + message,
+              "color:orange;font-weight:bold;"
+            );
+          }
+        }
+        break;
+
+      case "error":
+        if (data !== "") {
+          console.log(
+            "%cCF Power Scripts: " + message,
+            "color:#bd1b1e;font-weight:bold;",
+            data
+          );
+        } else {
+          console.log(
+            "%cCF Power Scripts: " + message,
+            "color:#bd1b1e;font-weight:bold;"
+          );
+        }
+        break;
+
+      case "success":
+        if (data !== "") {
+          console.log(
+            "%cCF Power Scripts: " + message,
+            "color:green;font-weight:bold;",
+            data
+          );
+        } else {
+          console.log(
+            "%cCF Power Scripts: " + message,
+            "color:green;font-weight:bold;"
+          );
+        }
+        break;
+    }
+  }
+
+  async submitData(dataAsJson) {
+    const requestOptions = {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      referrerPolicy: "unsafe-url",
+      body: dataAsJson,
+    };
+
+    var _this = this,
+      responseData = "";
+
+    let requestPromise = fetch(this.baseUrl + "analytics", requestOptions);
+    requestPromise
+      .then(function (res) {
+        responseData = res.json(); //error here
+      })
+      .then(function (data) {
+        responseData = data;
+      })
+      .catch((error) => {
+        responseData = false;
+      });
+
+    let response = await requestPromise;
+    response = responseData;
+    return response;
+  }
+
+  getPathFromUrl(url) {
+    return url.split("?")[0];
+  }
+
+  stripQueryStringAndHashFromPath(url) {
+    return url.split("?")[0].split("#")[0];
+  }
+
+  // track pageView event
+  async trackPageView() {
+    // prepare data for PageView & ViewContent event
+    // get eventData for pageView as well
+    this.setFacebookAdvancedMatchingParameters(); // available information could have changed
+    var firstEventsArr = {};
+    firstEventsArr.PageView = JSON.stringify(
+      this.enrichFacebookEvent({
+        // pageViewId: this.pageViewData.pageViewId,
+        // visitorId: this.pageViewData.visitorId, // fallback to determine pageViewId basd on visitor
+        url: this.stripQueryStringAndHashFromPath(window.location.href), // additional fallback
+        requestUri: window.location.href, // used for proper event reporting
+        request: "Event",
+        eventPlatform: "Facebook Pixel",
+        platform: "ClickFunnels",
+        eventName: "PageView",
+        //eventId: eventObj.eventId,
+        //eventSuccess: this.fbqReady,
+        advancedMatching: this.advancedMatchingObj, // used in Conversions API
+      })
+    );
+    if (
+      typeof ps5_bTrackViewContent != "undefined" &&
+      ps5_bTrackViewContent == "Y"
+    ) {
+      if (
+        typeof ps5_bTrackViewContentValueBased != "undefined" &&
+        ps5_bTrackViewContentValueBased == "Y"
+      ) {
+        firstEventsArr.ViewContent = JSON.stringify(
+          this.enrichFacebookEvent({
+            // pageViewId: this.pageViewData.pageViewId,
+            // visitorId: this.pageViewData.visitorId, // fallback to determine pageViewId basd on visitor
+            url: this.stripQueryStringAndHashFromPath(window.location.href), // additional fallback
+            requestUri: window.location.href, // used for proper event reporting
+            request: "Event",
+            eventPlatform: "Facebook Pixel",
+            platform: "ClickFunnels",
+            eventName: "ViewContent",
+            eventData: {
+              content_name: cStepName + " - " + cPageName,
+              content_category: cFunnelName,
+              value: 0.01,
+              currency: ps5_cCurrency,
+            },
+            //eventId: eventObj.eventId,
+            //eventSuccess: this.fbqReady,
+            advancedMatching: this.advancedMatchingObj, // used in Conversions API
+          })
+        );
+      } else {
+        firstEventsArr.ViewContent = JSON.stringify(
+          this.enrichFacebookEvent({
+            // pageViewId: this.pageViewData.pageViewId,
+            // visitorId: this.pageViewData.visitorId, // fallback to determine pageViewId basd on visitor
+            url: this.stripQueryStringAndHashFromPath(window.location.href), // additional fallback
+            requestUri: window.location.href, // used for proper event reporting
+            request: "Event",
+            eventPlatform: "Facebook Pixel",
+            platform: "ClickFunnels",
+            eventName: "ViewContent",
+            eventData: {
+              content_name: cStepName + " - " + cPageName,
+              content_category: cFunnelName,
+            },
+            //eventId: eventObj.eventId,
+            //eventSuccess: this.fbqReady,
+            advancedMatching: this.advancedMatchingObj, // used in Conversions API
+          })
+        );
+      }
+    }
+
+    let dataAsJson = JSON.stringify({
+      kUser: cUID,
+      cPlan: cPlan,
+      visitorId: this.pageViewData.visitorId,
+      request: "PageView",
+      platform: "ClickFunnels",
+      url: this.stripQueryStringAndHashFromPath(window.location.href),
+      requestUri: window.location.href,
+      referrerUri: document.referrer,
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      orientation: window.orientation,
+      localStorage: localStorage,
+      cookies: this.getPageCookies(),
+      uniqueId: this.pageViewData.uniqueId,
+      pageId: this.pageDetails.pageId,
+      stepId: this.pageDetails.stepId,
+      funnelId: this.pageDetails.funnelId,
+      email: this.pageViewData.email,
+      eventsArr: firstEventsArr,
+    });
+
+    let requestResult = this.submitData(dataAsJson);
+    this.pageViewData = await requestResult;
+    this.setItem("pageViewData", this.pageViewData);
+    this.log("trackPageView() returned:", "debug", this.pageViewData);
+
+    if (this.pageViewData !== false) {
+      this.ready = true;
+      this.setFacebookAdvancedMatchingParameters();
+
+      // update uniqueIdObj
+      this.uniqueIdObj[this.pageDetails.pageId] = this.pageViewData.uniqueId;
+      this.setItem("uniqueIdObj", this.uniqueIdObj);
+      if (typeof CFPS != "undefined") {
+        // update conversion API fields
+        this.generateConversionsApiFields();
+      }
+      return true;
+    } else {
+      this.log("Unable to retrieve unique pageView ID", "error");
+      return false;
+    }
+  }
+
+  /* require eventObj with:
+    .eventName
+    .eventData
+    .eventId <- used for Conversion API
+    .eventPlatform
+    */
+  async submitEventCFPS(eventObj) {
+    if (this.ready) {
+      // update advanced matching obj
+      this.setFacebookAdvancedMatchingParameters(); // available information could have changed
+      let dataAsJson = JSON.stringify({
+        kUser: cUID,
+        cPlan: cPlan,
+        pageViewId: this.pageViewData.pageViewId,
+        visitorId: this.pageViewData.visitorId, // fallback to determine pageViewId basd on visitor
+        url: this.stripQueryStringAndHashFromPath(window.location.href), // additional fallback
+        requestUri: window.location.href, // used for proper event reporting
+        request: "Event",
+        eventPlatform: eventObj.eventPlatform,
+        platform: "ClickFunnels",
+        eventName: eventObj.eventName,
+        eventData: eventObj.eventData,
+        eventId: eventObj.eventId,
+        eventSuccess: this.fbqReady,
+        advancedMatching: this.advancedMatchingObj, // used in Conversions API
+      });
+
+      // submit PageView event and return/overwrite eventId if it has already been used
+      let requestResult = this.submitData(dataAsJson);
+      let eventIdObj = await requestResult;
+      this.log(
+        "CFPS.submitEventCFPS(" + eventObj.eventName + ") successful.",
+        "success",
+        eventObj
+      );
+      return eventIdObj.eventId;
+    } else {
+      return false;
+    }
+  }
+
+  async trackEventCFPS(eventObj, isQueue = false) {
+    if (eventObj.eventId == false) {
+      eventObj.eventId = this.getEventId(eventObj.pageId, eventObj.eventName);
+    }
+    if (this.ready) {
+      // track CFPS
+      if (this.conversionsAPI) {
+        if (eventObj.eventId != false) {
+          let requestResult = this.submitEventCFPS(eventObj);
+          var response = await requestResult;
+        } else if (!isQueue) {
+          // add event to CFPS queue
+          this.eventQueues["CFPS"].push(eventObj);
+          this.log(
+            "CFPS.trackEventCFPS(" +
+              eventObj.eventName +
+              ") adding event to queue:",
+            "debug",
+            eventObj
+          );
+          var response = false;
+        }
+      } else {
+        // no tracking needed for NON CAPI events
+        return true;
+      }
+    } else if (!isQueue) {
+      // add event to CFPS queue
+      this.eventQueues["CFPS"].push(eventObj);
+      this.log(
+        "CFPS.trackEventCFPS(" +
+          eventObj.eventName +
+          ") adding event to queue:",
+        "debug",
+        eventObj
+      );
+      var response = false;
+    } else {
+      response = false;
+    }
+
+    return response;
+  }
+
+  async processEventQueue(eventType = "") {
+    if (!this.queueActive) {
+      this.queueActive = true;
+      for (var platform in this.eventQueues) {
+        // process all events or only events for a selected platform
+        if (eventType == "" || platform == eventType || platform == "CFPS") {
+          if (this.eventQueues[platform].length) {
+            // process events in current queue
+            for (var i = 0; i < this.eventQueues[platform].length; ++i) {
+              var eventObj = this.eventQueues[platform][i];
+
+              switch (platform) {
+                case "CFPS":
+                  var response = await this.trackEventCFPS(eventObj, true);
+                  if (response != false) {
+                    // event tracked, remove from queue
+                    this.eventQueues[platform].splice(i, 1);
+                  } // else keep element in queue until next trigger
+                  break;
+
+                case "Facebook":
+                  var response = await this.trackEventFacebook(eventObj, true);
+                  if (response != false) {
+                    // event tracked, remove from queue
+                    this.eventQueues[platform].splice(i, 1);
+                  } // else keep element in queue until next trigger
+                  break;
+              }
+            }
+          } else {
+            // no events in queue for this platform
+          }
+        }
+      }
+
+      this.queueActive = false;
+    }
+    return true;
+  }
+
+  // supports localStorage
+  supportsLocalStorage() {
+    var cfpsTest = "cfpsTest";
+    try {
+      localStorage.setItem(cfpsTest, cfpsTest);
+      localStorage.removeItem(cfpsTest);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // detect which storage method is supported
+  setStorageMethod() {
+    if (this.supportsLocalStorage()) {
+      // localStorage supported
+      this.storageReady = true;
+      return "localStorage";
+    } else if (navigator.cookieEnabled) {
+      // cookies supported
+      this.storageReady = true;
+      return "cookie";
+    } else if (indexedDB && false) {
+      // IndexedDB supported, include https://github.com/localForage/localForage for easier usage
+      // TODO: add support for indexedDB using localForage
+      return "indexedDB";
+    } else {
+      // no storage supported
+      this.storageReady = true;
+      this.log("Browser does not support storage methods.", "error");
+      return false;
+    }
+  }
+
+  // support functions to handle data
+  // Returns an object of key value pairs for this page's cookies
+  getPageCookies() {
+    // cookie is a string containing a semicolon-separated list, this split puts it into an array
+    var cookieArr = document.cookie.split(";");
+
+    // This object will hold all of the key value pairs
+    var cookieObj = {};
+
+    // Iterate the array of flat cookies to get their key value pair
+    for (var i = 0; i < cookieArr.length; i++) {
+      // Remove the standardized whitespace
+      var cookieSeg = cookieArr[i].trim();
+
+      // Index of the split between key and value
+      var firstEq = cookieSeg.indexOf("=");
+
+      // Assignments
+      var name = cookieSeg.substr(0, firstEq);
+      var value = cookieSeg.substr(firstEq + 1);
+      cookieObj[name] = value;
+    }
+    return cookieObj;
+  }
+
+  setCookie(name, value, days) {
+    var expires = "";
+    if (days) {
+      var date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      expires = "; expires=" + date.toUTCString();
+    }
+    document.cookie = name + "=" + (value || "") + expires + "; path=/";
+  }
+
+  getCookie(name) {
+    var nameEQ = name + "=";
+    var ca = document.cookie.split(";");
+    for (var i = 0; i < ca.length; i++) {
+      var c = ca[i];
+      while (c.charAt(0) == " ") c = c.substring(1, c.length);
+      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+  }
+
+  deleteCookie(name) {
+    document.cookie =
+      name + "=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+  }
+
+  getAllCookiesAsArray() {
+    var cookies = {};
+
+    if (document.cookie && document.cookie != "") {
+      var split = document.cookie.split(";");
+      for (var i = 0; i < split.length; i++) {
+        var name_value = split[i].split("=");
+        name_value[0] = name_value[0].replace(/^ /, "");
+        cookies[decodeURIComponent(name_value[0])] = decodeURIComponent(
+          name_value[1]
+        );
+      }
+    }
+
+    return cookies;
+  }
+
+  parseJSON(str) {
+    try {
+      var parsed = JSON.parse(str);
+      return { value: parsed, isValid: typeof parsed === "object" };
+    } catch (e) {
+      return { value: str, isValid: false };
+    }
+  }
+
+  setItem(name, value, asJson = true) {
+    // adjust name to make sure there are no conflicts
+    name = "cfps_" + name;
+    if (asJson) {
+      // check if data is already JSON and if not parse it
+      let temp = this.parseJSON(value);
+      if (!temp.isValid) {
+        value = JSON.stringify(value);
+      }
+    }
+    switch (this.storageMethod) {
+      case "localStorage":
+        localStorage.setItem(name, value);
+        return true;
+      case "cookie":
+        this.setCookie(name, value, 365);
+        return true;
+      case "indexedDB":
+        this.localforage.setItem(name, value);
+        return true;
+      case false:
+        // do nothing, missing storage support was already reported earlier
+        break;
+    }
+  }
+
+  getItem(name, jsonOnly = true) {
+    var data = null;
+
+    // adjust name to make sure there are no conflicts
+    name = "cfps_" + name;
+
+    switch (this.storageMethod) {
+      case "localStorage":
+        data = this.parseJSON(localStorage.getItem(name));
+
+        break;
+      case "cookie":
+        data = this.parseJSON(this.getCookie(name));
+
+        break;
+      case "indexedDB":
+        data = this.parseJSON(this.localforage.getItem(name));
+        break;
+      case false:
+        // do nothing, missing storage support was already reported earlier
+        return null;
+    }
+    if (jsonOnly) {
+      return data.value;
+    } else {
+      return data;
+    }
+  }
+
+  removeItem(name) {
+    // adjust name to make sure there are no conflicts
+    name = "cfps_" + name;
+    switch (this.storageMethod) {
+      case "localStorage":
+        localStorage.removeItem(name);
+        return true;
+        break;
+      case "cookie":
+        this.deleteCookie(name);
+        return true;
+        break;
+      case "indexedDB":
+        this.localforage.removeItem(name);
+        return true;
+        break;
+      case false:
+        // do nothing, missing storage support was already reported earlier
+        return null;
+        break;
+    }
+    return false;
+  }
+
+  // working with ClickFunnels stored user data
+  getCFUserData(field) {
+    if (
+      typeof localStorage.getItem(
+        "garlic:" + window.location.hostname + "*>input." + field
+      ) !== "undefined" &&
+      localStorage.getItem(
+        "garlic:" + window.location.hostname + "*>input." + field
+      ) !== null
+    ) {
+      return localStorage.getItem(
+        "garlic:" + window.location.hostname + "*>input." + field
+      );
+    } else {
+      return null;
+    }
+  }
+
+  setCFUserData(field, value) {
+    localStorage.setItem(
+      "garlic:" + window.location.hostname + "*>input." + field,
+      value
+    );
+  }
+
+  // support methods
+  getRandomString(length) {
+    let result = [];
+    let characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let charactersLength = characters.length;
+    for (let i = 0; i < length; i++) {
+      result.push(
+        characters.charAt(Math.floor(Math.random() * charactersLength))
+      );
+    }
+    return result.join("");
+  }
+
+  getUniqueHash(str, seed = 0) {
+    let h1 = 0xdeadbeef ^ seed,
+      h2 = 0x41c6ce57 ^ seed;
+    for (let i = 0, ch; i < str.length; i++) {
+      ch = str.charCodeAt(i);
+      h1 = Math.imul(h1 ^ ch, 2654435761);
+      h2 = Math.imul(h2 ^ ch, 1597334677);
+    }
+    h1 =
+      Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^
+      Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 =
+      Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^
+      Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return 4294967296 * (2097151 & h2) + (h1 >>> 0);
+  }
+
+  getUniqueIdArr() {
+    return this.uniqueIdObj;
+  }
+  getPageDetails() {
+    return this.pageDetails;
+  }
+
+  // original Facebook Functions
+  getEventId(pageId = "", eventName) {
+    let uniqueIdObj = this.getUniqueIdArr(),
+      pageDetails = this.getPageDetails();
+
+    // set pageId if it's not already set
+    pageId = pageId !== "" ? pageId : pageDetails.pageId;
+
+    for (let [objPageId, objUniqueId] of Object.entries(uniqueIdObj)) {
+      if (pageId == objPageId) {
+        var uniqueId = objUniqueId;
+        break;
+      }
+    }
+
+    if (typeof uniqueId != "undefined") {
+      let eventId = uniqueId + "-" + eventName;
+      return eventId;
+    } else {
+      return false;
+    }
+  }
+
+  // add funnel information as custom parameters to request if it's not already set
+  enrichFacebookEvent(eventObj) {
+    if (
+      typeof eventObj.eventData == "undefined" ||
+      typeof eventObj.eventData == "string"
+    ) {
+      eventObj.eventData = {};
+    }
+    if (typeof eventObj.eventData.funnelId == "undefined") {
+      eventObj.eventData.funnelId = cFunnelId;
+    }
+    if (typeof eventObj.eventData.funnelName == "undefined") {
+      eventObj.eventData.funnelName = cFunnelName;
+    }
+    if (typeof eventObj.eventData.stepId == "undefined") {
+      eventObj.eventData.stepId = cStepId;
+    }
+    if (typeof eventObj.eventData.stepName == "undefined") {
+      eventObj.eventData.stepName = cStepName;
+    }
+    if (typeof eventObj.eventData.pageId == "undefined") {
+      eventObj.eventData.pageId = cPageId;
+    }
+    if (typeof eventObj.eventData.pageName == "undefined") {
+      eventObj.eventData.pageName = cPageName;
+    }
+    if (typeof eventObj.eventData.pageType == "undefined") {
+      eventObj.eventData.pageType =
+        cPageType == "Sales" ? "Sales Page" : cPageType;
+    }
+
+    return eventObj;
+  }
+
+  trackEventFacebook(eventObj, isQueue = false) {
+    if (!isQueue) {
+      this.log("trackEventFacebook()", "debug", eventObj);
+    }
+    if (this.fbqReady) {
+      if (this.conversionsAPI) {
+        if (this.ready) {
+          eventObj.eventId = this.getEventId(
+            eventObj.pageId,
+            eventObj.eventName
+          );
+          if (eventObj.eventId != false) {
+            // check if eventId has already been used
+            if (!this.usedEventIdsArr.includes(eventObj.eventId)) {
+              this.usedEventIdsArr.push(eventObj.eventId);
+              this.setItem("usedEventIdsArr", this.usedEventIdsArr);
+
+              fbq("track", eventObj.eventName, eventObj.eventData, {
+                eventID: eventObj.eventId,
+              });
+              this.log(
+                "CFPS.trackEventFacebook(" +
+                  eventObj.eventName +
+                  ') with event ID "' +
+                  eventObj.eventId +
+                  '" successful.',
+                "success",
+                eventObj
+              );
+              return true;
+            } else {
+              this.log(
+                "CFPS.trackEventFacebook(" +
+                  eventObj.eventName +
+                  ") failed. eventId has already been used.",
+                "error",
+                eventObj
+              );
+              // clear event from queue since retries would also fail
+              return true;
+            }
+          } else {
+            if (!isQueue) {
+              this.eventQueues["Facebook"].push(eventObj);
+              this.log(
+                "CFPS.trackEventFacebook(" +
+                  eventObj.eventName +
+                  ") adding event to queue:",
+                "debug",
+                eventObj
+              );
+            }
+            this.log(
+              "CFPS.trackEventFacebook(" +
+                eventObj.eventName +
+                ") failed. Unable to determine required eventId.",
+              "error",
+              eventObj
+            );
+            return false;
+          }
+        } else {
+          // add event to Facebook queue
+          if (!isQueue) {
+            this.eventQueues["Facebook"].push(eventObj);
+            this.log(
+              "CFPS.trackEventFacebook(" +
+                eventObj.eventName +
+                ") adding event to queue:",
+              "debug",
+              eventObj
+            );
+          }
+          return false;
+        }
+      } else {
+        fbq("track", eventObj.eventName, eventObj.eventData);
+        this.log(
+          "CFPS.trackEventFacebook(" + eventObj.eventName + ") successful.",
+          "success",
+          eventObj
+        );
+        return true;
+      }
+    } else {
+      // add event to Facebook queue
+      if (!isQueue) {
+        this.eventQueues["Facebook"].push(eventObj);
+        this.log(
+          "CFPS.trackEventFacebook(" +
+            eventObj.eventName +
+            ") adding event to queue:",
+          "debug",
+          eventObj
+        );
+      }
+      return false;
+    }
+  }
+
+  trackPixelOnly(eventName = "", eventData = "", pageId = "") {
+    // set pageId if it's not already set
+    pageId = pageId !== "" ? pageId : this.pageDetails.pageId;
+
+    var eventObj = {
+      eventName: eventName.trim(),
+      eventData: eventData,
+      pageId: pageId,
+      eventId: false,
+      eventPlatform: "Facebook Pixel",
+    };
+
+    eventObj = this.enrichFacebookEvent(eventObj);
+    this.trackEventFacebook(eventObj);
+  }
+
+  // track Events
+  track(eventName = "", eventData = "", pageId = "") {
+    // set pageId if it's not already set
+    pageId = pageId !== "" ? pageId : this.pageDetails.pageId;
+
+    var eventObj = {
+      eventName: eventName.trim(),
+      eventData: eventData,
+      pageId: pageId,
+      eventId: false,
+      eventPlatform: "Facebook Pixel",
+    };
+
+    eventObj = this.enrichFacebookEvent(eventObj);
+    this.trackEventFacebook(eventObj);
+    this.trackEventCFPS(eventObj);
+  }
+
+  trackAfterTime(seconds, eventName, eventData = "") {
+    var _this = this;
+    setTimeout(function () {
+      _this.track(eventName, eventData);
+    }, seconds * 1000);
+  }
+
+  // CFPS.trackAfterLength(25, 'Viewed25', {});
+  trackAfterLength(length, eventName, eventData = "") {
+    if (typeof length !== "number") {
+      console.error(
+        "First parameter must be a number, got",
+        typeof length,
+        "instead"
+      );
+    }
+
+    function getWindowLength() {
+      return (
+        window.innerHeight ||
+        (document.documentElement || document.body).clientHeight
+      );
+    }
+
+    function getCurrentScrolledLengthPosition() {
+      return (
+        window.pageYOffset ||
+        (document.documentElement || document.body.parentNode || document.body)
+          .scrollTop
+      );
+    }
+
+    var _this = this;
+    var executeCallback = (function () {
+      var wasExecuted = false;
+      return function () {
+        if (!wasExecuted && getCurrentScrolledLengthPosition() > length) {
+          wasExecuted = true;
+          _this.track(eventName, eventData);
+        }
+      };
+    })();
+
+    if (getWindowLength() >= length) {
+      this.track(eventName, eventData);
+    } else {
+      window.addEventListener("scroll", executeCallback, false);
+    }
+  }
+
+  // CFPS.trackElementVisible(element, 'ReachedElem', {});
+  trackElementVisible(element, eventName, eventData = "") {
+    var dom_element = document.getElementById(element.replace("#", ""));
+
+    if (!(dom_element instanceof HTMLElement)) {
+      this.log(
+        "trackElementVisible() - dom_element must be a valid HTMLElement",
+        "error"
+      );
+    }
+
+    function isOnViewport(elem) {
+      var rect = elem.getBoundingClientRect();
+      var docElem = document.documentElement;
+      return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || docElem.clientHeight) &&
+        rect.right <= (window.innerWidth || docElem.clientWidth)
+      );
+    }
+    var _this = this;
+    var executeCallback = (function () {
+      var wasExecuted = false;
+      return function () {
+        if (!wasExecuted && isOnViewport(dom_element)) {
+          wasExecuted = true;
+          _this.track(eventName, eventData);
+        }
+      };
+    })();
+
+    window.addEventListener("scroll", executeCallback, false);
+  }
+
+  // CFPS.trackAfterPercentage(25, 'Viewed25', {});
+  trackAfterPercentage(percentage, eventName, eventData = "") {
+    if (typeof percentage !== "number") {
+      console.error(
+        "First parameter must be a number, got",
+        typeof percentage,
+        "instead"
+      );
+    }
+
+    function getDocumentLength() {
+      var D = document;
+      return Math.max(
+        D.body.scrollHeight,
+        D.documentElement.scrollHeight,
+        D.body.offsetHeight,
+        D.documentElement.offsetHeight,
+        D.body.clientHeight,
+        D.documentElement.clientHeight
+      );
+    }
+
+    function getWindowLength() {
+      return (
+        window.innerHeight ||
+        (document.documentElement || document.body).clientHeight
+      );
+    }
+
+    function getScrollableLength() {
+      if (getDocumentLength() > getWindowLength()) {
+        return getDocumentLength() - getWindowLength();
+      } else {
+        return 0;
+      }
+    }
+
+    var scrollableLength = getScrollableLength();
+
+    window.addEventListener(
+      "resize",
+      function () {
+        scrollableLength = getScrollableLength();
+      },
+      false
+    );
+
+    function getCurrentScrolledLengthPosition() {
+      return (
+        window.pageYOffset ||
+        (document.documentElement || document.body.parentNode || document.body)
+          .scrollTop
+      );
+    }
+
+    function getPercentageScrolled() {
+      if (scrollableLength == 0) {
+        return 100;
+      } else {
+        return (getCurrentScrolledLengthPosition() / scrollableLength) * 100;
+      }
+    }
+
+    var _this = this;
+    var executeCallback = (function () {
+      var wasExecuted = false;
+      return function () {
+        if (!wasExecuted && getPercentageScrolled() > percentage) {
+          wasExecuted = true;
+          _this.track(eventName, eventData);
+        }
+      };
+    })();
+
+    if (getDocumentLength() == 0 || getPercentageScrolled() >= percentage) {
+      this.track(eventName, eventData);
+    } else {
+      window.addEventListener("scroll", executeCallback, false);
+    }
+  }
+
+  // prepare advanced matching for Facebook
+  setFacebookAdvancedMatchingParameters() {
+    // TODO: add data validation
+    let advancedMatchingObj = {};
+
+    // email - em
+    if (
+      typeof ps5_am_email != "undefined" &&
+      this.getCFUserData(ps5_am_email) != null &&
+      /^\S+@\S+\.\S+$/.test(this.getCFUserData(ps5_am_email))
+    ) {
+      advancedMatchingObj.em = this.getCFUserData(ps5_am_email).toLowerCase();
+    }
+
+    // first name - fn
+    if (
+      typeof ps5_am_firstname != "undefined" &&
+      this.getCFUserData(ps5_am_firstname) != null
+    ) {
+      advancedMatchingObj.fn =
+        this.getCFUserData(ps5_am_firstname).toLowerCase();
+    } else {
+      // check if name can be created based on full name
+      let fullName = this.getCFUserData("name");
+      let fullNameArr = fullName != null ? fullName.split(" ") : null;
+      // only use this method when full name consists of two strings
+      if (fullNameArr != null && fullNameArr.length === 2) {
+        advancedMatchingObj.fn = fullNameArr[0].toLowerCase();
+        this.setCFUserData("first_name", fullNameArr[0]);
+      }
+    }
+
+    // last name - ln
+    if (
+      typeof ps5_am_lastname != "undefined" &&
+      this.getCFUserData(ps5_am_lastname) != null
+    ) {
+      advancedMatchingObj.ln =
+        this.getCFUserData(ps5_am_lastname).toLowerCase();
+    } else {
+      // check if name can be created based on full name
+      let fullName = this.getCFUserData("name");
+      let fullNameArr =
+        fullName != null && fullName.includes(" ")
+          ? fullName.trim().split(" ")
+          : null;
+      // only use this method when full name consists of two strings
+      if (
+        fullNameArr != null &&
+        fullNameArr.length === 2 &&
+        fullNameArr[1].length > 0
+      ) {
+        advancedMatchingObj.ln = fullNameArr[1].toLowerCase();
+        this.setCFUserData("last_name", fullNameArr[1]);
+      }
+    }
+
+    // phone - ph
+    if (
+      typeof ps5_am_phone != "undefined" &&
+      this.getCFUserData(ps5_am_phone) != null
+    ) {
+      advancedMatchingObj.ph = this.getCFUserData(ps5_am_phone).replace(
+        /\D/g,
+        ""
+      );
+    }
+
+    // city - ct
+    if (
+      typeof ps5_am_city != "undefined" &&
+      this.getCFUserData(ps5_am_city) != null
+    ) {
+      advancedMatchingObj.ct = this.getCFUserData(ps5_am_city)
+        .replace(/[^A-Z0-9]+/gi, "")
+        .toLowerCase();
+    }
+
+    // state - st
+    if (
+      typeof ps5_am_state != "undefined" &&
+      this.getCFUserData(ps5_am_state) != null
+    ) {
+      // TODO, find solution to improve matching of states
+      if (this.getCFUserData(ps5_am_state).length == 2) {
+        advancedMatchingObj.st = this.getCFUserData(ps5_am_state).toLowerCase();
+      }
+    }
+
+    // zip - zp
+    if (
+      typeof ps5_am_zip != "undefined" &&
+      this.getCFUserData(ps5_am_zip) != null
+    ) {
+      advancedMatchingObj.zp = this.getCFUserData(ps5_am_zip);
+    }
+
+    // country - cn
+    if (
+      typeof ps5_am_country != "undefined" &&
+      this.getCFUserData(ps5_am_country) != null
+    ) {
+      // TODO, find solution to improve matching of countries
+      if (this.getCFUserData(ps5_am_country).length == 2) {
+        advancedMatchingObj.cn =
+          this.getCFUserData(ps5_am_country).toLowerCase();
+      }
+    }
+
+    /* external id
+    if (
+      localStorage.getItem("cf_uvid") != "undefined" &&
+      localStorage.getItem("cf_uvid") != null
+    ) {
+      advancedMatchingObj.external_id = localStorage.getItem("cf_uvid");
+    }/*/
+
+    this.advancedMatchingObj = advancedMatchingObj;
+    this.advancedMatching =
+      this.advancedMatchingObj.constructor === Object &&
+      Object.keys(this.advancedMatchingObj).length > 0;
+  }
+
+  createEventListeners() {
+    // bind all event listeners depending on which tracking scripts are active
+  }
+  addInputField(destination, name, value) {
+    // only if field doesn't exist already
+    if (!$("#" + name).length) {
+      var ps5_showFields =
+        this.isAdmin && false ? "block; margin-top: 15px" : "none";
+      $(destination).prepend(
+        '<div id="' +
+          name +
+          '" style="display: ' +
+          ps5_showFields +
+          ';" class="cfpsconversionapi de elInputWrapper de-editable de-input-block elAlign_center elMargin0" data-de-type="input" data-de-editing="false" data-title="input" data-ce="false" data-trigger="none" data-animate="fade" data-delay="500" type="custom_type"><input type="custom_type" name="custom_type" class="elInput elInput100 elAlign_left elInputMid elInputStyl0 elInputBG1 elInputBR5 elInputI0 elInputIBlack elInputIRight required0 ceoinput garlic-auto-save" data-type="extra" data-custom-type="' +
+          name +
+          '" value="' +
+          value +
+          '" /></div>'
+      );
+    } else {
+      // update value
+      let $input = $("#" + name + " > input");
+      if ($input.val() != value) {
+        $input.val(value);
+      }
+    }
+  }
+
+  generateConversionsApiFields() {
+    let selector =
+      '[href="#submit-form"], [href="#submit-form-2step-order"], [href*="#yes-link"]';
+    let $anchor =
+      $(selector).length > 1
+        ? $(selector).first().parent()
+        : $(selector).parent();
+
+    this.addInputField($anchor, "cfpsfbp", this.getCookie("_fbp"));
+    this.addInputField($anchor, "cfpsfbc", this.getCookie("_fbc"));
+    this.addInputField($anchor, "cfpsuseragent", navigator.userAgent);
+    this.addInputField($anchor, "cfpsfbeventid", this.pageViewData.uniqueId);
+    this.addInputField($anchor, "cfpspageviewid", this.pageViewData.pageViewId);
+
+    // TODO: consider CFPS.pageViewData.uniqueIdChanged to update fields if the ID changed
+  }
+}
+var CFPS = new CFPowerScripts(bAdmin, cFunnelId, cStepId, cPageId);
+CFPS.log("Initialised", "debug", CFPS);
+
+var cfpsCron = setInterval(function () {
+  CFPS.processEventQueue();
+  if (CFPS.conversionsAPI) {
+    CFPS.generateConversionsApiFields();
+  }
+}, 250);
+
+// wait for CFPS and Facebook to be ready
+(function ps5_fbqReady() {
+  //first check if the fbq object is defined, then check the version (probably not needed but for good measure
+  if (
+    typeof fbq !== "undefined" &&
+    fbq.version > "2.9" &&
+    ((CFPS.conversionsAPI && CFPS.ready) || !CFPS.conversionsAPI)
+  ) {
+    ps5_fbReady();
+  } else {
+    setTimeout(ps5_fbqReady, 10);
+  }
+})();
+function ps5_fbReady() {
+  CFPS.initialised = true;
+  CFPS.fbqReady = true;
+  CFPS.setFacebookAdvancedMatchingParameters();
+  for (var i = 0; i < CFPS.pixelArr.length; i++) {
+    let pixelId = CFPS.pixelArr[i].trim();
+    if (CFPS.advancedMatching) {
+      CFPS.log(
+        'Initialise Facebook pixel for pixel "' +
+          pixelId +
+          '" with advanced matching:',
+        "debug",
+        CFPS.advancedMatchingObj
+      );
+      fbq("init", pixelId, CFPS.advancedMatchingObj);
+    } else {
+      CFPS.log("Initialise Facebook pixel: " + pixelId, "debug");
+      fbq("init", pixelId);
+    }
+  }
+  if (CFPS.conversionsAPI) {
+    CFPS.generateConversionsApiFields();
+  }
+}
+// process events in queue
+CFPS.trackPixelOnly("PageView");
+if (
+  typeof ps5_bTrackViewContent != "undefined" &&
+  ps5_bTrackViewContent == "Y"
+) {
+  if (
+    typeof ps5_bTrackViewContentValueBased != "undefined" &&
+    ps5_bTrackViewContentValueBased == "Y"
+  ) {
+    CFPS.trackPixelOnly("ViewContent", {
+      content_name: cStepName + " - " + cPageName,
+      content_category: cFunnelName,
+      value: 0.01,
+      currency: ps5_cCurrency,
+    });
+  } else {
+    CFPS.trackPixelOnly("ViewContent", {
+      content_name: cStepName + " - " + cPageName,
+      content_category: cFunnelName,
+    });
+  }
+}
+/* add YouTube API jS */
+var VimeoJSAPI = document.createElement('script');
+VimeoJSAPI.src = "https://player.vimeo.com/api/player.js";
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(VimeoJSAPI, firstScriptTag);/**/
+
+// add Power Script CSS
+var link = document.createElement("link");
+link.href = "https://ps.boaa.it/assets/css/cf-vimeo-pro.min.css";
+link.type = "text/css";
+link.rel = "stylesheet";
+document.getElementsByTagName("head")[0].appendChild(link);
+
+var ps56_VimeoPlayer_arr = {};// make sure Facebook Pixel is ready
+if (typeof kScript_5 != "undefined" && kScript_5) {
+  // create required custom input fields
+  CFPS.generateConversionsApiFields();
+} else if (bAdmin) {
+  console.log(
+    "%cWarning: The Facebook Conversion API Power Script requires the basic Facebook Pixel PowerScript.",
+    "color:#bd1b1e;"
+  );
+}
+
+var waitForJQuery = setInterval(function () { if (typeof $ != 'undefined') { $(function() {/* Variables
+    ps56_bPreventInteraction
+    ps56_cTextClick2Play
+    ps56_cTextClick2Play2
+    ps56_cIconColor
+    ps56_cIconBGColor
+    ps56_cTextColor
+    ps56_cPlayButton
+    ps56_cPlayButtonClr
+
+    fas fa-volume-off
+    fas fa-volume-down
+    fas fa-volume-up
+ */
+function ps56_getVimeoVideoID(csstitle) {
+  var videoID = "";
+  if (csstitle.includes(" ")) {
+    var title = csstitle.split(" ");
+    for (var i = 0; i < title.length; i++) {
+      if (title[i].includes("cfps-vm-pro-")) {
+        videoID = title[i]
+          .replace("cfps-vm-pro-pb-", "")
+          .replace("cfps-vm-pro-", "");
+      }
+    }
+  } else {
+    videoID = csstitle
+      .replace("cfps-vm-pro-pb-", "")
+      .replace("cfps-vm-pro-", "");
+  }
+
+  return videoID;
+}
+
+function ps56_prepareVimeoVideo(VideoElem, bInPopup, autoPlayVideo) {
+  ps56_VimeoPlayer_arr[VideoElem] = new Vimeo.Player(VideoElem);
+
+  ps56_VimeoPlayer_arr[VideoElem].ready().then(() => {
+    /* enable Loop */
+    ps56_VimeoPlayer_arr[VideoElem].setLoop(true);
+
+    if (bInPopup) {
+      ps56_VimeoPlayer_arr[VideoElem].play()
+        .then(function () {
+          // the video was played
+        })
+        .catch(function (error) {
+          console.error("Vimeo:", error.name);
+        });
+      ps56_VimeoPlayer_arr[VideoElem].setVolume(0);
+    }
+
+    $overlay = $('[data-vimeo-video="' + VideoElem + '"]');
+    $playBtn = $overlay.find("div.play-button");
+
+    if (!autoPlayVideo) {
+      $playBtn.addClass("show");
+    }
+
+    ps56_VimeoPlayer_arr[VideoElem].on("ended", function (data) {
+      if (
+        $('[data-vimeo-video="' + VideoElem + '"]')
+          .find(".video-overlay")
+          .hasClass("first-play")
+      ) {
+        /* Trigger Show/Hide Action */
+        var selector_arr = VideoElem.split("-");
+        selector_arr.pop();
+        var selector = selector_arr.join("-");
+        $('[data-title*="cfps-hide-for-vm-' + selector + '"]').hide();
+        $('[data-title*="cfps-show-for-vm-' + selector + '"]').show();
+        $('[data-vimeo-video="' + VideoElem + '"]')
+          .find(".video-overlay")
+          .removeClass("first-play")
+          .addClass("re-play")
+          .attr("data-status", "ready");
+      }
+
+      // reset video
+      ps56_VimeoPlayer_arr[VideoElem].setCurrentTime(0);
+      ps56_VimeoPlayer_arr[VideoElem].setLoop(true);
+      ps56_VimeoPlayer_arr[VideoElem].setVolume(0);
+      ps56_VimeoPlayer_arr[VideoElem].play()
+        .then(function () {
+          // the video was played
+        })
+        .catch(function (error) {
+          console.error("Vimeo:", error.name);
+        });
+
+      $('[data-vimeo-video="' + VideoElem + '"]')
+        .find(".video-overlay")
+        .attr("data-status", "ready");
+
+      // reset play button and overlay
+      $overlay = $('[data-vimeo-video="' + VideoElem + '"]');
+      $playBtn = $overlay.find("div.play-button");
+      $soundIcn = $overlay.find("div.sound-overlay");
+
+      // show play button?
+      if (ps56_bPreventInteraction === "Y") {
+        if ($overlay.attr("data-title").includes("cfps-vm-pro-pb-")) {
+          $playBtn.show();
+        }
+        //$soundIcn.show();
+      } else {
+        $('[data-vimeo-video="' + VideoElem + '"]')
+          .find(".video-overlay")
+          .show();
+        $soundIcn.hide();
+      }
+    });
+  });
+}
+
+function ps56_enableCFVimeoPro() {
+  var ps56_checkVM = setInterval(function () {
+    if (typeof Vimeo != "undefined") {
+      var i = 0,
+        cPreventInteraction =
+          ps56_bPreventInteraction === "Y" ? " prevent-interaction" : "",
+        cSoundButton = "",
+        cSoundBg = "",
+        cPlayButton = "";
+      $('[data-title*="cfps-vm-pro-"]').each(function (e) {
+        if (!$(this).hasClass("elVideoWrapper")) {
+          // No Video Element
+          return;
+        }
+
+        // press to turn on sound logic
+        if (ps56_cTextClick2Play.includes("https://")) {
+          cSoundButton =
+            '<img src="' +
+            ps56_cTextClick2Play +
+            '" alt="' +
+            ps56_cTextClick2Play2 +
+            '" />';
+          cSoundBg = "";
+        } else {
+          cSoundButton =
+            '<div class="icon" style="background-color: ' +
+            ps56_cIconBGColor +
+            '"><i style="color:' +
+            ps56_cIconColor +
+            '" class="fa-3x fas fa-volume-up"></i></div><div class="text" style="color: ' +
+            ps56_cTextColor +
+            '">' +
+            ps56_cTextClick2Play +
+            "<span>" +
+            ps56_cTextClick2Play2 +
+            "</span></div>";
+          cSoundBg = " bg";
+        }
+
+        // prePare Video
+        if ($(this).attr("data-title").includes("cfps-vm-pro-pb-")) {
+          if (ps56_cPlayButton.includes("https://")) {
+            cPlayButton =
+              '<img src="' +
+              ps56_cPlayButton +
+              '" alt="' +
+              ps56_cTextClick2Play +
+              " " +
+              ps56_cTextClick2Play2 +
+              '" />';
+          } else {
+            cPlayButton =
+              '<i style="color:' +
+              ps56_cPlayButtonClr +
+              '" class="fa-8x ' +
+              ps56_cPlayButton +
+              '"></i>';
+          }
+          $(this)
+            .find(".elVideo")
+            .prepend(
+              '<div class="video-overlay cfps-vimeo-pro-overlay first-play' +
+                cPreventInteraction +
+                '" data-status="ready"><div class="sound-overlay' +
+                cSoundBg +
+                '">' +
+                cSoundButton +
+                '</div><div class="sound-overlay-cover"></div><div class="play-button">' +
+                cPlayButton +
+                "</div></div>"
+            );
+        } else {
+          $(this)
+            .find(".elVideo")
+            .prepend(
+              '<div class="video-overlay cfps-vimeo-pro-overlay first-play' +
+                cPreventInteraction +
+                '" data-status="ready"><div class="sound-overlay' +
+                cSoundBg +
+                '">' +
+                cSoundButton +
+                '</div><div class="sound-overlay-cover"></div></div>'
+            );
+        }
+        var VideoID = ps56_getVimeoVideoID($(this).attr("data-title")),
+          VideoElem = VideoID + "-" + i,
+          bInPopup = $(this).closest(".containerModal").length;
+
+        $(this).find("iframe").attr("id", VideoElem);
+        $(this).attr("data-vimeo-video", VideoElem);
+
+        // make sure the autoplay attribute is set
+        // console.log("Allow Attr: " + $("iframe#" + VideoElem).attr("allow"));
+        autoPlayVideo =
+          typeof $("iframe#" + VideoElem).attr("allow") != "undefined" &&
+          $("iframe#" + VideoElem)
+            .attr("allow")
+            .includes("autoplay");
+        if (!autoPlayVideo) {
+          $newIframe = $("iframe#" + VideoElem).clone();
+          $newIframe.attr("allow", "autoplay");
+          $("iframe#" + VideoElem).replaceWith($newIframe);
+        }
+
+        ps56_prepareVimeoVideo(VideoElem, bInPopup, autoPlayVideo);
+        i++;
+      });
+
+      clearInterval(ps56_checkVM);
+    }
+  }, 100);
+}
+
+$(document).on(
+  "click",
+  '[data-title*="cfps-vm-pro-"] .cfps-vimeo-pro-overlay, [data-title*="cfps-vm-pro-"] button.vm-play-button',
+  function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    var $video = $(this).closest('[data-title*="cfps-vm-pro-"]'),
+      ID = $video.find("iframe").attr("id"),
+      $overlay = $(this),
+      $playBtn = $overlay.find(".play-button"),
+      $soundIcn = $overlay.find(".sound-overlay"),
+      status = $overlay.attr("data-status"),
+      blockPause = $video.find(".iframeBlocker").length;
+
+    switch (status) {
+      case "ready":
+        console.log("ready");
+        $overlay.attr("data-status", "playing");
+        /* pause all other players */
+        for (var key in ps56_VimeoPlayer_arr) {
+          ps56_VimeoPlayer_arr[key].getPaused().then(function (paused) {
+            if (key !== ID && !paused) {
+              ps56_VimeoPlayer_arr[key].pause();
+            }
+          });
+        }
+        if ($overlay.hasClass("first-play") || $overlay.hasClass("re-play")) {
+          /* Restart Video & Disable Loop */
+          ps56_VimeoPlayer_arr[ID].setCurrentTime(0);
+          ps56_VimeoPlayer_arr[ID].setLoop(false);
+        }
+
+        if (ps56_bPreventInteraction === "Y") {
+          $playBtn.hide();
+          $soundIcn.hide();
+        } else {
+          $overlay.hide();
+        }
+        if (blockPause) {
+          $video.find(".iframeBlocker").hide();
+        }
+        ps56_VimeoPlayer_arr[ID].play()
+          .then(function () {
+            // the video was played
+          })
+          .catch(function (error) {
+            console.error("Vimeo:", error.name);
+          });
+        ps56_VimeoPlayer_arr[ID].setMuted(false);
+        ps56_VimeoPlayer_arr[ID].setVolume(1);
+        ps56_VimeoPlayer_arr[ID].getVolume().then(function (volume) {
+          console.log("Vimeo volume:", volume);
+          if (volume != 1) {
+            ps56_VimeoPlayer_arr[ID].setVolume(1)
+              .then(function (volume) {
+                // volume was set
+              })
+              .catch(function (error) {
+                console.error("Vimeo", error.name);
+              });
+          }
+        });
+        break;
+
+      case "playing":
+        console.log("playing");
+        $overlay.attr("data-status", "paused");
+        if (ps56_bPreventInteraction === "Y") {
+          $playBtn.show();
+        } else {
+          $overlay.show();
+        }
+        if (!blockPause) {
+          ps56_VimeoPlayer_arr[ID].pause();
+        }
+        break;
+
+      case "paused":
+        console.log("paused");
+        $overlay.attr("data-status", "playing");
+        if (ps56_bPreventInteraction === "Y") {
+          $playBtn.hide();
+        } else {
+          $overlay.hide();
+        }
+        ps56_VimeoPlayer_arr[ID].play()
+          .then(function () {
+            // the video was played
+          })
+          .catch(function (error) {
+            console.error("Vimeo:", error.name);
+          });
+        break;
+    }
+  }
+);
+
+switch (cPageType) {
+  case "Membership Area":
+    ps56_enableCFVimeoPro();
+    $(".lesson-link").click(function (e, t) {
+      ps56_enableCFVimeoPro();
+    });
+    break;
+
+  default:
+    ps56_enableCFVimeoPro();
+    break;
+}
+
+// pause video in PopUp when PopUp closes
+$(".modalBackdropWrapper, .closeLPModal").on("click", function () {
+  for (var key in ps56_VimeoPlayer_arr) {
+    if (
+      $('[data-vimeo-video="' + key + '"]').closest(".containerModal").length
+    ) {
+      ps56_VimeoPlayer_arr[key].pause();
+    }
+  }
+});
+
+}); clearInterval(waitForJQuery); } }, 10);

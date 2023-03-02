@@ -1,0 +1,161 @@
+[data-title*="cfps-vm-pro-"] .video-overlay {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  background: 0 0;
+  z-index: 6 !important;
+  top: 0;
+  left: 0;
+  cursor: pointer;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay-cover {
+  position: absolute;
+  display: block;
+  width: 240px;
+  height: 65px;
+  cursor: pointer;
+  z-index: 2;
+  top: 5px;
+  left: 10px;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay {
+  position: absolute;
+  display: block;
+  width: 240px;
+  height: 65px;
+  top: 5px;
+  left: 10px;
+  animation: pulse 2s infinite;
+  animation-timing-function: ease-out;
+  z-index: 1;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay.bg {
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 5px;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay img {
+  max-height: 50px;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay .icon {
+  border-radius: 50%;
+  text-align: left;
+  width: 55px;
+  height: 55px;
+  padding: 5px;
+  padding-top: 7px;
+  position: absolute;
+  top: 5px;
+  left: 5px;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay > .icon > i:before {
+  animation-duration: 2s;
+  animation-name: cfps-vimeo-pro-volume;
+  animation-iteration-count: infinite;
+}
+@keyframes cfps-vimeo-pro-volume {
+  25% {
+    content: "\f028";
+  }
+  50% {
+    content: "\f027";
+  }
+  75% {
+    content: "\f026";
+  }
+  100% {
+    content: "\f027";
+  }
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay .text {
+  text-align: left;
+  position: absolute;
+  top: 5px;
+  left: 65px;
+  height: 55px;
+  font-weight: 700;
+  font-size: 20px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  font-family: "Arial Black", AvenirNext-Heavy;
+  letter-spacing: -1px;
+}
+[data-title*="cfps-vm-pro-"] .sound-overlay .text span {
+  text-align: left;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  font-weight: 700;
+  font-size: 29px;
+}
+[data-title*="cfps-vm-pro-"] .play-button {
+  position: absolute;
+  display: block;
+  width: 112px;
+  height: 112px;
+  cursor: pointer;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translateY(-50%) translateX(-50%);
+  transform: translateY(-50%) translateX(-50%);
+  -ms-transform: translate(-50%, -50%);
+  transition: transform 0.5s ease;
+  transform-origin: center center;
+  text-align: center;
+  zoom: 100%;
+}
+[data-title*="cfps-vm-pro-"] .play-button > img {
+  max-height: 112px;
+  max-width: 112px;
+}
+[data-title*="cfps-vm-pro-"] .play-button i {
+  transition: transform 0.5s ease;
+  transform-origin: center center;
+}
+[data-title*="cfps-vm-pro-"] .play-button:hover i {
+  transform: scale(1.2);
+}
+@media (max-width: 770px) {
+  [data-title*="cfps-vm-pro-"] .sound-overlay-cover {
+    width: 120px;
+    height: 40px;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay {
+    width: 120px;
+    height: 40px;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay img {
+    max-height: 40px;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay .icon {
+    width: 30px;
+    height: 30px;
+    padding: 2px;
+    padding-top: 5px;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay .icon i {
+    font-size: 1.5em;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay .text {
+    margin-top: 2px;
+    left: 37px;
+    height: 30px;
+    font-size: 11px;
+    font-family: "Arial Black", AvenirNext-Heavy;
+  }
+  [data-title*="cfps-vm-pro-"] .sound-overlay .text span {
+    font-size: 15px;
+  }
+  [data-title*="cfps-vm-pro-"] .play-button:not(.show) {
+    display: none;
+  }
+  [data-title*="cfps-vm-pro-"] .play-button.show {
+    width: 70px;
+    height: 70px;
+  }
+  [data-title*="cfps-vm-pro-"] .play-button i {
+    font-size: 5em !important;
+  }
+}
+.elVideoWrapper {
+  z-index: 1;
+}

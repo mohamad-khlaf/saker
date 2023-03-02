@@ -1,0 +1,21 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+body {
+    font-family: 'Noto Kufi Arabic', sans-serif;
+}
+section.main .container {
+    max-width: 600px;
+    padding: 15px;
+    text-align: center;
+    margin: auto;
+}
+section.main .container h1 {
+    background-color: red;
+}
+section.main .container video {
+    max-width: 100%;
+    margin: auto;
+}
